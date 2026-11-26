@@ -22,12 +22,33 @@ export default class SBIXGlyph extends TTFGlyph {
    * @param {number} size
    * @return {object}
    */
-  getImageForSize(size) {
-    for (let i = 0; i < this._font.sbix.imageTables.length; i++) {
-      var table = this._font.sbix.imageTables[i];
+  _getImageTableForSize(size) {
+    let smallestMatching = null;
+    let largest = null;
+
+    const tables = this._font.sbix.imageTables;
+    for (let i = 0; i < tables.length; i++) {
+      const table = tables[i];
       if (table.ppem >= size) {
-        break;
+        if (!smallestMatching || table.ppem < smallestMatching.ppem) {
+          smallestMatching = table;
+        }
       }
+
+      if (!largest || table.ppem > largest.ppem) {
+        largest = table;
+      }
+    }
+
+    // SBIX strikes are normally sorted by ppem, but selecting the smallest
+    // strike that is at least as large as requested also works if they are not.
+    return smallestMatching || largest;
+  }
+
+  getImageForSize(size) {
+    let table = this._getImageTableForSize(size);
+    if (!table) {
+      return null;
     }
 
     let offsets = table.imageOffsets;
